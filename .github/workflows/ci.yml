@@ -40,6 +40,10 @@ jobs:
         run: |
           git add README.md
           git diff --cached --quiet || git commit -m "Actualiza README desde CI"
+
+          git fetch origin "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+
           git push origin HEAD:${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}
 
   validate-dev:

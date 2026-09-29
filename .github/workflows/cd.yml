@@ -35,7 +35,6 @@ jobs:
 
           sed -i "s/^AppVersion=.*/AppVersion=$next/" README.md
 
-          echo "AppVersion=$next" >> README.md
           echo "Fecha=$(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> README.md
 
           echo "Nueva versión: $next"
@@ -49,7 +48,12 @@ jobs:
       - name: Guardar cambios
         run: |
           git add README.md
+          git diff --cached --quiet || exit 0
           git commit -m "Incrementa versión"
+
+          git fetch origin "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+
           git push origin HEAD:${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}
 
   validate-prod:
