@@ -29,8 +29,9 @@ jobs:
 
       - name: Actualizar README
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        shell: bash
         run: |
-          echo "Añadida feature: ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" >> README.md
+          echo "Añadida feature: ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME} - $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> README.md
 
       - name: Configurar Git
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
