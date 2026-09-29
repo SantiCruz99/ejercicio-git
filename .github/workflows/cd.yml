@@ -28,7 +28,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Incrementar versión
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
           current=$(grep '^AppVersion=' README.md | cut -d= -f2)
@@ -42,23 +41,15 @@ jobs:
           echo "Fecha: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 
       - name: Configurar Git
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Guardar cambios
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           git add README.md
-          git diff --cached --quiet || exit 0
-          git commit -m "Incrementa versión"
+          git diff --cached --quiet || git commit -m "Incrementa versión"
           git push origin HEAD:main
-
-      - name: Preparar CD del PR
-        if: github.event_name == 'pull_request'
-        run: |
-          echo "PR hacia main detectado"
 
   validate-prod:
     runs-on: self-hosted
