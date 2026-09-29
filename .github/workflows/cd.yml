@@ -15,6 +15,9 @@ on:
 
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
 
   bump-version:
@@ -32,8 +35,11 @@ jobs:
 
           sed -i "s/^AppVersion=.*/AppVersion=$next/" README.md
 
-          echo "AppVersion=$next"
-          date -u
+          echo "AppVersion=$next" >> README.md
+          echo "Fecha=$(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> README.md
+
+          echo "Nueva versión: $next"
+          echo "Fecha: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 
       - name: Configurar Git
         run: |
@@ -44,7 +50,7 @@ jobs:
         run: |
           git add README.md
           git commit -m "Incrementa versión"
-          git push
+          git push origin HEAD:${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}
 
   validate-prod:
     runs-on: self-hosted
@@ -55,7 +61,6 @@ jobs:
         shell: powershell
         env:
           PROD_TOKEN: ${{ secrets.PROD_TOKEN }}
-          LOCAL_PROD_TOKEN: $env:LOCAL_PROD_TOKEN
         run: |
           if ($env:LOCAL_PROD_TOKEN -ne $env:PROD_TOKEN) {
             Write-Error "PROD_TOKEN no coincide con LOCAL_PROD_TOKEN"
