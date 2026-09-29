@@ -1,0 +1,78 @@
+name: CD
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+
+  bump-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Incrementar versión
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          current=$(grep '^AppVersion=' README.md | cut -d= -f2)
+          next=$((current + 1))
+
+          sed -i "s/^AppVersion=.*/AppVersion=$next/" README.md
+
+          echo "Fecha=$(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> README.md
+
+          echo "Nueva versión: $next"
+          echo "Fecha: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+
+      - name: Configurar Git
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Guardar cambios
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git add README.md
+          git diff --cached --quiet || exit 0
+          git commit -m "Incrementa versión"
+          git push origin HEAD:main
+
+      - name: Preparar CD del PR
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "PR hacia main detectado"
+
+  validate-prod:
+    runs-on: self-hosted
+    needs: bump-version
+
+    steps:
+      - name: Validar PROD_TOKEN
+        shell: powershell
+        env:
+          PROD_TOKEN: ${{ secrets.PROD_TOKEN }}
+        run: |
+          if ($env:LOCAL_PROD_TOKEN -ne $env:PROD_TOKEN) {
+            Write-Error "PROD_TOKEN no coincide con LOCAL_PROD_TOKEN"
+            exit 1
+          }
+
+          Write-Host "PROD_TOKEN válido"

@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - develop
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+  push:
+    branches:
+      - develop
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+
+  update-readme:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Actualizar README
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        run: |
+          echo "Añadida feature: ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" >> README.md
+
+      - name: Configurar Git
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Guardar cambios
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        run: |
+          git add README.md
+          git diff --cached --quiet || git commit -m "Actualiza README desde CI"
+          git push origin HEAD:develop
+
+      - name: Preparar CI del PR
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "PR detectado: $GITHUB_HEAD_REF"
+
+  validate-dev:
+    runs-on: self-hosted
+    needs: update-readme
+
+    steps:
+      - name: Validar DEV_TOKEN
+        shell: powershell
+        env:
+          DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
+        run: |
+          if ($env:LOCAL_DEV_TOKEN -ne $env:DEV_TOKEN) {
+            Write-Error "DEV_TOKEN no coincide con LOCAL_DEV_TOKEN"
+            exit 1
+          }
+
+          Write-Host "DEV_TOKEN válido"
